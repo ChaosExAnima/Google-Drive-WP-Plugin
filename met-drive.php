@@ -48,7 +48,7 @@ function metdrive_display()
 	
 	$client->setClientId('895728636120-il1j8fajf720s6d8q7apq4dfc1ks18d1.apps.googleusercontent.com');
 	$client->setClientSecret('AMmBSg_3yMpIoCIsRMppRRY7');
-	$client->setRedirectUri('http://localhost/Camarilla/wp-admin/options-general.php?page=met-drive%2Fmet-drive.php');
+	$client->setRedirectUri( admin_url('/options-general.php?page=met-drive%2Fmet-drive.php') );
 	$client->setScopes(array('https://www.googleapis.com/auth/drive'));
 	$client->setUseObjects(true);
 	
@@ -115,7 +115,7 @@ function metdrive_settings_page()
 	
 	$client->setClientId('895728636120-il1j8fajf720s6d8q7apq4dfc1ks18d1.apps.googleusercontent.com');
 	$client->setClientSecret('AMmBSg_3yMpIoCIsRMppRRY7');
-	$client->setRedirectUri('http://localhost/Camarilla/wp-admin/options-general.php?page=met-drive%2Fmet-drive.php');
+	$client->setRedirectUri( admin_url('/options-general.php?page=met-drive%2Fmet-drive.php') );
 	$client->setScopes(array('https://www.googleapis.com/auth/drive'));
 ?>
 <div class="wrap">
@@ -148,7 +148,7 @@ if( empty($token) && isset($_GET['code']) )
 	$dirs = $service->files->listFiles($dir_params);
 ?>
 	<p>Next, we need to pick which folder you want to display on the front end. Check your desired folder below and hit submit:</p>
-	<form action="" method="GET">
+	<form action="<?php echo admin_url('/options-general.php?page=met-drive%2Fmet-drive.php'); ?>" method="post">
 		<?php foreach($dirs['items'] as $dir): ?>
 			<p><label><input type="radio" name="metdrive-folder" value="<?php echo $dir['id']; ?>"> <?php echo $dir['title']; ?></label></p>
 		<?php endforeach; ?>
@@ -183,7 +183,7 @@ else
 	<p>To use the plugin, put the <code>[metdrive]</code> shortcode in a page or post.</p>
 	<p>You are currently showing the folder "<strong><?php echo $current['title']; ?></strong>". To change that, check your desired folder below and hit submit:</p>
 <?php endif; ?>
-	<form action="<?php echo admin_url('/options-general.php?page=met-drive%2Fmet-drive.php'); ?>" method="POST">
+	<form action="<?php echo admin_url('/options-general.php?page=met-drive%2Fmet-drive.php'); ?>" method="post">
 		<?php foreach($dirs['items'] as $dir): ?>
 			<p><label><input type="radio" name="folder" value="<?php echo $dir['id']; ?>" <?php echo ($dir['id'] == $folder) ? 'checked="checked"' : ''; ?>> <?php echo $dir['title']; ?></label></p>
 		<?php endforeach; ?>
