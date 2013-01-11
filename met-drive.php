@@ -157,8 +157,8 @@ if( empty($token) && isset($_GET['code']) )
 ?>
 	<p>Next, we need to pick which folder you want to display on the front end. Check your desired folder below and hit submit:</p>
 	<form action="<?php echo admin_url('/options-general.php?page=met-drive%2Fmet-drive.php'); ?>" method="post">
-		<?php foreach($dirs['items'] as $dir): ?>
-			<p><label><input type="radio" name="metdrive-folder" value="<?php echo $dir['id']; ?>"> <?php echo $dir['title']; ?></label></p>
+		<?php foreach($dirs->items as $dir): ?>
+			<p><label><input type="radio" name="folder" value="<?php echo $dir->id; ?>"> <?php echo $dir->title; ?></label></p>
 		<?php endforeach; ?>
 		<?php echo submit_button(); ?>
 	</form>
@@ -188,7 +188,7 @@ else
 <?php if( empty($folder) ): ?>
 	<p>Next, we need to pick which folder you want to display on the front end. Check your desired folder below and hit submit:</p>
 <?php else: ?>
-	<p>To use the plugin, put the <code>[metdrive]</code> shortcode in a page or post.</p>
+	<p>To use the plugin, put the <code>[metdrive]</code> shortcode in a page or post. Make sure you are sharing all the files to the public, or people shall be confused...!</p>
 	<p>You are currently showing the folder "<strong><?php echo $current->title; ?></strong>". To change that, check your desired folder below and hit submit:</p>
 <?php endif; ?>
 	<form action="<?php echo admin_url('/options-general.php?page=met-drive%2Fmet-drive.php'); ?>" method="post">
