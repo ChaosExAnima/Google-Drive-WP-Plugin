@@ -41,16 +41,7 @@ function metdrive_display()
 		return;
 	}
 	
-	require_once plugin_dir_path(__FILE__).'lib/Google_Client.php';
-	require_once plugin_dir_path(__FILE__).'lib/contrib/Google_DriveService.php';
-	
-	$client = new Google_Client();
-	
-	$client->setClientId('895728636120-il1j8fajf720s6d8q7apq4dfc1ks18d1.apps.googleusercontent.com');
-	$client->setClientSecret('AMmBSg_3yMpIoCIsRMppRRY7');
-	$client->setRedirectUri( admin_url('/options-general.php?page=met-drive%2Fmet-drive.php') );
-	$client->setScopes(array('https://www.googleapis.com/auth/drive'));
-	$client->setUseObjects(true);
+	$client = metdrive_load_lib();
 	
 	$service = new Google_DriveService($client);
 	
@@ -104,23 +95,40 @@ function metdrive_register_settings()
 
 
 /**
+ * Initializes the Google SDK.
+ * 
+ * @return object The Google Client object.
+ */
+function metdrive_load_lib()
+{
+	require_once plugin_dir_path(__FILE__).'lib/Google_Client.php';
+	require_once plugin_dir_path(__FILE__).'lib/contrib/Google_DriveService.php';
+	require_once plugin_dir_path(__FILE__).'config.php';
+	
+	$client = new Google_Client();
+	
+	$client->setClientId($metdriveClientId);
+	$client->setClientSecret($metdriveClientSecret);
+	$client->setRedirectUri( admin_url('/options-general.php?page=met-drive%2Fmet-drive.php') );
+	$client->setScopes(array('https://www.googleapis.com/auth/drive'));
+	$client->setUseObjects(true);
+	
+	return $client;
+}
+
+
+/**
  * Displays the settings page.
  */
 function metdrive_settings_page() 
 {
-	require_once plugin_dir_path(__FILE__).'lib/Google_Client.php';
-	require_once plugin_dir_path(__FILE__).'lib/contrib/Google_DriveService.php';
 	
-	$client = new Google_Client();
-	
-	$client->setClientId('895728636120-il1j8fajf720s6d8q7apq4dfc1ks18d1.apps.googleusercontent.com');
-	$client->setClientSecret('AMmBSg_3yMpIoCIsRMppRRY7');
-	$client->setRedirectUri( admin_url('/options-general.php?page=met-drive%2Fmet-drive.php') );
-	$client->setScopes(array('https://www.googleapis.com/auth/drive'));
 ?>
 <div class="wrap">
 <h2>MET Google Drive</h2>
 <?php 
+
+$client = metdrive_load_lib();
 
 $service = new Google_DriveService($client);
 
@@ -181,11 +189,11 @@ else
 	<p>Next, we need to pick which folder you want to display on the front end. Check your desired folder below and hit submit:</p>
 <?php else: ?>
 	<p>To use the plugin, put the <code>[metdrive]</code> shortcode in a page or post.</p>
-	<p>You are currently showing the folder "<strong><?php echo $current['title']; ?></strong>". To change that, check your desired folder below and hit submit:</p>
+	<p>You are currently showing the folder "<strong><?php echo $current->title; ?></strong>". To change that, check your desired folder below and hit submit:</p>
 <?php endif; ?>
 	<form action="<?php echo admin_url('/options-general.php?page=met-drive%2Fmet-drive.php'); ?>" method="post">
-		<?php foreach($dirs['items'] as $dir): ?>
-			<p><label><input type="radio" name="folder" value="<?php echo $dir['id']; ?>" <?php echo ($dir['id'] == $folder) ? 'checked="checked"' : ''; ?>> <?php echo $dir['title']; ?></label></p>
+		<?php foreach($dirs->items as $dir): ?>
+			<p><label><input type="radio" name="folder" value="<?php echo $dir->id; ?>" <?php echo ($dir->id == $folder) ? 'checked="checked"' : ''; ?>> <?php echo $dir->title; ?></label></p>
 		<?php endforeach; ?>
 		<?php echo submit_button(); ?>
 	</form>
