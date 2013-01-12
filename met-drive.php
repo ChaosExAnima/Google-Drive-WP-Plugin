@@ -128,9 +128,22 @@ function metdrive_settings_page()
 <h2>MET Google Drive</h2>
 <?php 
 
-$client = metdrive_load_lib();
+try 
+{
+	$client = metdrive_load_lib();
 
-$service = new Google_DriveService($client);
+	$service = new Google_DriveService($client);
+	
+	$url = $client->createAuthUrl();
+}
+catch(Exception $e)
+{
+?>
+	<div class="error"><p><strong>There has been an error loading initializing the required libraries.</strong></p></div>
+	<p>Information for the developer:</p>
+	<pre><?php print_r($e); ?></pre>
+<?php	
+}
 
 $token = get_option('metdrive-token');
 $folder = get_option('metdrive-folder');
@@ -167,7 +180,7 @@ if( empty($token) && isset($_GET['code']) )
 elseif( empty($token) ) { // We don't have the token stored!
 ?>
 	<p>You need to authenticate with Google before using this plugin:</p>
-	<p><a href="<?php echo $client->createAuthUrl(); ?>">Click here to authenticate.</a></p>
+	<p><a href="<?php echo $url; ?>">Click here to authenticate.</a></p>
 <?php 
 } 
 else
