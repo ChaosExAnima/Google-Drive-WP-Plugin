@@ -1,10 +1,10 @@
 <?php
 /*
-Plugin Name: MET Google Drive
-Plugin URI: http://www.mindseyesociety.org
+Plugin Name: Google Drive Folder Display
+Plugin URI: https://github.com/ChaosExAnima/Google-Drive-WP-Plugin
 Description: A plugin to authenticate with Google Drive in order to display files and folders.
 Author: Ephraim Gregor
-Version: 1.0
+Version: 1.1
 Author URI: http://ephraimgregor.com/
 License: GPL3
 */
@@ -30,10 +30,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 /**
  * Loads and displays the files from Google Drive using the shortcode.
  */
-function metdrive_display()
+function cexdrive_display()
 {
-	$token = get_option('metdrive-token');
-	$folder = get_option('metdrive-folder');
+	$token = get_option('cexdrive-token');
+	$folder = get_option('cexdrive-folder');
 	
 	// Make sure we're set up first.
 	if( empty($token) || empty($folder) )
@@ -41,7 +41,7 @@ function metdrive_display()
 		return;
 	}
 	
-	$client = metdrive_load_lib();
+	$client = cexdrive_load_lib();
 	
 	$service = new Google_DriveService($client);
 	
@@ -53,7 +53,7 @@ function metdrive_display()
 		
 	$files = $service->files->listFiles($params);
 	
-	$text = '<ul class="metdrive" style="list-style-type:none;">';
+	$text = '<ul class="cexdrive" style="list-style-type:none;">';
 	
 	foreach($files->items as $file)
 	{
@@ -66,50 +66,48 @@ function metdrive_display()
 }
 
 // Adds the shortcode hook
-add_shortcode('metdrive', 'metdrive_display');
+add_shortcode('gdrive', 'cexdrive_display');
 
 /**
  * Creates the menu page.
  */
-function metdrive_create_menu() 
+function cexdrive_create_menu() 
 {
 	// Creates a new menu under settings
-	add_options_page('MET Google Drive Settings', 'MET Google Drive', 'administrator', __FILE__, 'metdrive_settings_page');
+	add_options_page('Google Drive Folder Display Settings', 'Google Drive Display', 'administrator', __FILE__, 'cexdrive_settings_page');
 
 	//call register settings function
-	add_action( 'admin_init', 'metdrive_register_settings' );
+	add_action( 'admin_init', 'cexdrive_register_settings' );
 }
 
-add_action('admin_menu', 'metdrive_create_menu');
+add_action('admin_menu', 'cexdrive_create_menu');
 
 
 /**
  * Registers the settings groups.
  */
-function metdrive_register_settings() 
+function cexdrive_register_settings() 
 {
 	//register our settings
-	register_setting( 'metdrive-settings-group', 'metdrive-token' );
-	register_setting( 'metdrive-settings-group', 'metdrive-folder' );
+	register_setting( 'cexdrive-settings-group', 'cexdrive-token' );
+	register_setting( 'cexdrive-settings-group', 'cexdrive-folder' );
 }
 
 
 /**
  * Initializes the Google SDK.
  * 
+ * @param string $url The URL to redirect to.
  * @return object The Google Client object.
  */
-function metdrive_load_lib()
+function cexdrive_load_lib($url = '')
 {
 	require_once plugin_dir_path(__FILE__).'lib/Google_Client.php';
 	require_once plugin_dir_path(__FILE__).'lib/contrib/Google_DriveService.php';
-	require_once plugin_dir_path(__FILE__).'config.php';
 	
 	$client = new Google_Client();
 	
-	$client->setClientId($metdriveClientId);
-	$client->setClientSecret($metdriveClientSecret);
-	$client->setRedirectUri( admin_url('/options-general.php?page=met-drive%2Fmet-drive.php') );
+	$client->setRedirectUri($url);
 	$client->setScopes(array('https://www.googleapis.com/auth/drive'));
 	$client->setUseObjects(true);
 	
@@ -120,7 +118,7 @@ function metdrive_load_lib()
 /**
  * Displays the settings page.
  */
-function metdrive_settings_page() 
+function cexdrive_settings_page() 
 {
 	
 ?>
@@ -128,13 +126,13 @@ function metdrive_settings_page()
 <h2>MET Google Drive</h2>
 <?php 
 
+$url = admin_url( '/options-general.php?page=' . basename(__DIR__) . '/cexdrive.php' ); // Sets the redirect URL
+
 try 
 {
-	$client = metdrive_load_lib();
+	$client = cexdrive_load_lib($url); // Load the libraries
 
-	$service = new Google_DriveService($client);
-	
-	$url = $client->createAuthUrl();
+	$service = new Google_DriveService($client); // Create a new Drive service
 }
 catch(Exception $e)
 {
@@ -145,20 +143,20 @@ catch(Exception $e)
 <?php	
 }
 
-$token = get_option('metdrive-token');
-$folder = get_option('metdrive-folder');
+$token = get_option('cexdrive-token');
+$folder = get_option('cexdrive-folder');
 
 if( isset($_POST['folder']) )
 {
 	$folder = $_POST['folder'];
-	update_option( 'metdrive-folder', $folder );
+	update_option( 'cexdrive-folder', $folder );
 }
 
 if( empty($token) && isset($_GET['code']) )
 {
 	$token = $_GET['code'];
 	$accessToken = $client->authenticate($token);
-	update_option( 'metdrive-token', $accessToken );
+	update_option( 'cexdrive-token', $accessToken );
 	
 	$client->setAccessToken($accessToken);
 	
@@ -180,7 +178,7 @@ if( empty($token) && isset($_GET['code']) )
 elseif( empty($token) ) { // We don't have the token stored!
 ?>
 	<p>You need to authenticate with Google before using this plugin:</p>
-	<p><a href="<?php echo $url; ?>">Click here to authenticate.</a></p>
+	<p><a href="<?php echo $client->createAuthUrl(); ?>">Click here to authenticate.</a></p>
 <?php 
 } 
 else
@@ -201,7 +199,7 @@ else
 <?php if( empty($folder) ): ?>
 	<p>Next, we need to pick which folder you want to display on the front end. Check your desired folder below and hit submit:</p>
 <?php else: ?>
-	<p>To use the plugin, put the <code>[metdrive]</code> shortcode in a page or post. Make sure you are sharing all the files to the public, or people shall be confused...!</p>
+	<p>To use the plugin, put the <code>[gdrive]</code> shortcode in a page or post. Make sure you are sharing all the files to the public, or people shall be confused...!</p>
 	<p>You are currently showing the folder "<strong><?php echo $current->title; ?></strong>". To change that, check your desired folder below and hit submit:</p>
 <?php endif; ?>
 	<form action="<?php echo admin_url('/options-general.php?page=met-drive%2Fmet-drive.php'); ?>" method="post">
