@@ -5,7 +5,7 @@
 function cexdrive_settings_page() 
 {
 	$settings = cexdrive_get_config(); // Gets the current config
-	$url = admin_url( '/options-general.php?page=' . basename(__DIR__) . '/cexdrive.php' ); // Sets the current URL
+	$url = admin_url( '/options-general.php?page=' . basename( dirname(__FILE__) ) . '/cexdrive.php' ); // Sets the current URL
     $client = cexdrive_load_lib($url); // Loads the Google SDK
     
     
