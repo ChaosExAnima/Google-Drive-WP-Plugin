@@ -77,9 +77,6 @@ function cexdrive_settings_page()
     <p>The first is the email of the account that's authenticated above. The second is the exact name of the folder you want to display.</p>
     <p>Easy, huh?</p>
 <?php endif; ?>
-	<pre>
-		<?php print_r($settings); ?>
-	</pre>
 </div>
 <?php
 }
