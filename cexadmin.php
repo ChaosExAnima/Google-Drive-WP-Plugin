@@ -23,12 +23,11 @@ function cexdrive_settings_page()
             $request = $client->getIo()->authenticatedRequest($req);
             
             $user = json_decode( $request->getResponseBody() );
-            
+                        
             // Data to insert
             $data = array(
                 'token' => $token,
-                'id' => $user->id,
-                'email' => $user->email
+                'folders' => array(),
             );           
             
             // Store credentials
@@ -47,7 +46,7 @@ function cexdrive_settings_page()
     // Removing a user
     if( isset($_GET['remove']) && $settings && array_key_exists($_GET['remove'], $settings) )
     {
-        $name = $settings[$_GET['remove']]['email'];
+        $name = $_GET['remove'];
         unset( $settings[ $_GET['remove'] ] );
         $settings = cexdrive_set_config($settings, FALSE);
         $message = "User {$name} was successfully removed.";

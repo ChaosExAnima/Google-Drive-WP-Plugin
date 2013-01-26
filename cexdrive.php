@@ -33,38 +33,110 @@ require "cexadmin.php";
 /**
  * Loads and displays the files from Google Drive using the shortcode.
  */
-function cexdrive_display()
+function cexdrive_display($attrs)
 {
-	$token = get_option('cexdrive-token');
-	$folder = get_option('cexdrive-folder');
-	
-	// Make sure we're set up first.
-	if( empty($token) || empty($folder) )
-	{
-		return;
-	}
-	
-	$client = cexdrive_load_lib();
-	
-	$service = new Google_DriveService($client);
-	
-	$client->setAccessToken($token); 
-	
+	// Make sure we have both attributes
+	if( !isset($attrs['email']) || !isset($attrs['folder']) )
+    {
+        return;
+    }
+    
+    $email = $attrs['email'];
+    $folder = $attrs['folder'];
+    
+	$settings = cexdrive_get_config();
+    
+    // Make sure we have this account enabled
+    if( !array_key_exists($email, $settings) )
+    {
+        return;
+    }
+    
+    $user = $settings[$email];
+    
+    // Get the access token
+    try
+    {
+        $client = cexdrive_load_lib();
+        $service = new Google_DriveService($client);
+        $client->setAccessToken($user['token']);     
+    }
+    catch(exception $e)
+    {
+        // Silently fail and log the error if it all goes to hell
+        error_log($e);
+        return;
+    }
+    
+    // Get the folder id
+    $folder_id = isset( $user['folders'][$folder] ) ? $user['folders'][$folder] : FALSE;
+    
+    // Check if we're provided the subfolder ID in the url
+    if( isset($_GET['folder']) )
+    {
+        $folder_id = $_GET['folder'];
+    }
+    
+    if(!$folder_id)
+    {
+        $params = array(
+          'q' => "mimeType = 'application/vnd.google-apps.folder' and title = '{$folder}'"  
+        );
+        
+        $response = $service->files->listFiles($params);
+        
+        // Did we get a match?
+        if( count($response->items) > 0 )
+        {
+            $folder_id = $response->items[0]->id;
+            
+            $user['folders'][$folder] = $folder_id;
+            
+            cexdrive_set_config( array( $email => $user ) );
+        }
+        else
+        {
+            // Exit if there's no folder by that name
+            error_log("CEXDrive: Could not find a folder by the name '{$folder}'.");
+            return;
+        }
+    }
+    	
 	$params = array(
-		'q' => "mimeType != 'application/vnd.google-apps.folder' and '{$folder}' in parents"
+		'q' => "'{$folder_id}' in parents"
 	);
 		
 	$files = $service->files->listFiles($params);
 	
-	$text = '<ul class="cexdrive" style="list-style-type:none;">';
+    $text = '<ul class="cexdrive" style="list-style-type:none;">';
 	
 	foreach($files->items as $file)
 	{
-		$text .= '<li><img src="' . $file->iconLink . '" alt="Icon"> <a href="' . $file->embedLink . '" target="_blank">' . $file->title . '</a></li>';
+	    // If this is a subfolder, set the embed link to something else
+	    $target = '_blank';
+	    if($file->mimeType == 'application/vnd.google-apps.folder')
+        {
+            $file->embedLink = cexdrive_subfolder_url($file->id);
+            $target = '_self';
+        }
+        
+		$text .= '<li><img src="' . $file->iconLink . '" alt="Icon"> <a href="' . $file->embedLink . '" target="' . $target . '">' . $file->title . '</a></li>';
 	}
 	
 	$text .= '</ul>';
 	
+    // If no files are found
+    if( count($files->items) == 0 )
+    {
+        $text = '<p class="cexdrive"><em>No files are found.</em></p>';
+    }
+         
+    // Add a "Go Back" link 
+    if( isset($_GET['folder']) )
+    {
+        $text .= '<p><a href="' . cexdrive_subfolder_url() . '">Click here to go back.</a></p>';
+    }    
+        
 	return $text;
 }
 
@@ -92,6 +164,31 @@ add_action('admin_menu', 'cexdrive_create_menu');
 function cexdrive_register_settings() 
 {
 	register_setting( 'cexdrive-settings-group', 'cexdrive-config' );
+}
+
+
+/**
+ * Gets a subfolder access URL.
+ * 
+ * @param string $id The subfolder id to access.
+ * @return string The URL
+ */
+function cexdrive_subfolder_url($id = FALSE)
+{
+    if($id !== FALSE)
+    {
+        $query = '?' . http_build_query( array_merge($_GET, array('folder' => $id)) );
+    }
+    else
+    {
+        $query = '';
+    }
+    
+    $url = empty($_SERVER['HTTPS']) ? 'http://' : 'https://';
+    $url .= $_SERVER["HTTP_HOST"] . parse_url($_SERVER["REQUEST_URI"], PHP_URL_PATH);
+    $url .= $query;
+        
+    return $url;
 }
 
 
@@ -144,7 +241,7 @@ function cexdrive_load_lib($url = '')
 	$client = new Google_Client();
 	
 	$client->setRedirectUri($url);
-	$client->setScopes(array('https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/userinfo.profile', 'https://www.googleapis.com/auth/userinfo.email'));
+	$client->setScopes(array('https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/userinfo.email'));
 	$client->setUseObjects(true);
 	
 	return $client;
