@@ -52,7 +52,9 @@ require_once 'auth/Google_AssertionCredentials.php';
 require_once 'auth/Google_Signer.php';
 require_once 'auth/Google_P12Signer.php';
 require_once 'service/Google_BatchRequest.php';
-// require_once 'external/URITemplateParser.php'; // Disabled due to conflict.
+if(!class_exists('URI_Template_Parser')) { // Check due to conflicts
+	require_once 'external/URITemplateParser.php';
+}
 require_once 'auth/Google_Auth.php';
 require_once 'cache/Google_Cache.php';
 require_once 'io/Google_IO.php';

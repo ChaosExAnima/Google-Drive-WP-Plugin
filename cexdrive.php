@@ -4,7 +4,7 @@ Plugin Name: Google Drive Folder Display
 Plugin URI: https://github.com/ChaosExAnima/Google-Drive-WP-Plugin
 Description: A plugin to authenticate with Google Drive in order to display files and folders.
 Author: Ephraim Gregor
-Version: 1.1
+Version: 1.2
 Author URI: http://ephraimgregor.com/
 License: GPL3
 */
@@ -25,6 +25,9 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+
+// The Admin pages
+require "cexadmin.php";
 
 
 /**
@@ -88,11 +91,44 @@ add_action('admin_menu', 'cexdrive_create_menu');
  */
 function cexdrive_register_settings() 
 {
-	//register our settings
-	register_setting( 'cexdrive-settings-group', 'cexdrive-token' );
-	register_setting( 'cexdrive-settings-group', 'cexdrive-folder' );
+	register_setting( 'cexdrive-settings-group', 'cexdrive-config' );
 }
 
+
+/**
+ * Parses the registered options.
+ * 
+ * @return array|bool An array of options, or FALSE if not set up.
+ */
+function cexdrive_get_config()
+{
+	$settings = unserialize( get_option('cexdrive-config') );
+	if(empty($settings) || count($settings) == 0)
+	{
+		return FALSE;
+	}
+	return $settings;
+}
+
+
+/**
+ * Sets a config option.
+ * 
+ * @param array An array that will be merged in the existing options.
+ * @param bool Whether to merge the data or override.
+ * @return array The new data array.
+ */
+function cexdrive_set_config($data = array(), $merge = TRUE)
+{
+	$current = cexdrive_get_config();
+	if($current !== FALSE && $merge === TRUE)
+	{
+		$data = array_merge($current, $data);
+	}
+    update_option('cexdrive-config', serialize($data));
+	return $data;
+}
+ 
 
 /**
  * Initializes the Google SDK.
@@ -108,110 +144,9 @@ function cexdrive_load_lib($url = '')
 	$client = new Google_Client();
 	
 	$client->setRedirectUri($url);
-	$client->setScopes(array('https://www.googleapis.com/auth/drive'));
+	$client->setScopes(array('https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/userinfo.profile', 'https://www.googleapis.com/auth/userinfo.email'));
 	$client->setUseObjects(true);
 	
 	return $client;
-}
-
-
-/**
- * Displays the settings page.
- */
-function cexdrive_settings_page() 
-{
-	
-?>
-<div class="wrap">
-<h2>MET Google Drive</h2>
-<?php 
-
-$url = admin_url( '/options-general.php?page=' . basename(__DIR__) . '/cexdrive.php' ); // Sets the redirect URL
-
-try 
-{
-	$client = cexdrive_load_lib($url); // Load the libraries
-
-	$service = new Google_DriveService($client); // Create a new Drive service
-}
-catch(Exception $e)
-{
-?>
-	<div class="error"><p><strong>There has been an error loading initializing the required libraries.</strong></p></div>
-	<p>Information for the developer:</p>
-	<pre><?php print_r($e); ?></pre>
-<?php	
-}
-
-$token = get_option('cexdrive-token');
-$folder = get_option('cexdrive-folder');
-
-if( isset($_POST['folder']) )
-{
-	$folder = $_POST['folder'];
-	update_option( 'cexdrive-folder', $folder );
-}
-
-if( empty($token) && isset($_GET['code']) )
-{
-	$token = $_GET['code'];
-	$accessToken = $client->authenticate($token);
-	update_option( 'cexdrive-token', $accessToken );
-	
-	$client->setAccessToken($accessToken);
-	
-	$dir_params = array(
-		'q' => "mimeType = 'application/vnd.google-apps.folder'"
-	);
-		
-	$dirs = $service->files->listFiles($dir_params);
-?>
-	<p>Next, we need to pick which folder you want to display on the front end. Check your desired folder below and hit submit:</p>
-	<form action="<?php echo $url; ?>" method="post">
-		<?php foreach($dirs->items as $dir): ?>
-			<p><label><input type="radio" name="folder" value="<?php echo $dir->id; ?>"> <?php echo $dir->title; ?></label></p>
-		<?php endforeach; ?>
-		<?php echo submit_button(); ?>
-	</form>
-<?php 
-}
-elseif( empty($token) ) { // We don't have the token stored!
-?>
-	<p>You need to authenticate with Google before using this plugin:</p>
-	<p><a href="<?php echo $client->createAuthUrl(); ?>">Click here to authenticate.</a></p>
-<?php 
-} 
-else
-{
-	$client->setAccessToken($token); 
-	
-	$dir_params = array(
-		'q' => "mimeType = 'application/vnd.google-apps.folder'"
-	);
-		
-	$dirs = $service->files->listFiles($dir_params);
-	
-	if($folder)
-	{
-		$current = $service->files->get($folder);
-	}	
-?>
-<?php if( empty($folder) ): ?>
-	<p>Next, we need to pick which folder you want to display on the front end. Check your desired folder below and hit submit:</p>
-<?php else: ?>
-	<p>To use the plugin, put the <code>[gdrive]</code> shortcode in a page or post. Make sure you are sharing all the files to the public, or people shall be confused...!</p>
-	<p>You are currently showing the folder "<strong><?php echo $current->title; ?></strong>". To change that, check your desired folder below and hit submit:</p>
-<?php endif; ?>
-	<form action="<?php echo $url; ?>" method="post">
-		<?php foreach($dirs->items as $dir): ?>
-			<p><label><input type="radio" name="folder" value="<?php echo $dir->id; ?>" <?php echo ($dir->id == $folder) ? 'checked="checked"' : ''; ?>> <?php echo $dir->title; ?></label></p>
-		<?php endforeach; ?>
-		<?php echo submit_button(); ?>
-	</form>
-<?php 	
-} 
-?>
-</div>
-<?php 
 }
 ?>
